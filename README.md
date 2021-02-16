@@ -1,8 +1,11 @@
 # psqlSimplified
 
 Description : script to run from a psql session
+
 script deployment location `touch ~/.psqlrc`
+
 usage : `postgres=> :vacuum_queries`
+
 hint : ": + double tab will list all the custom scripts alias"
 
 ```
