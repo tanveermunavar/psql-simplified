@@ -6,7 +6,7 @@ script to run common administrative commands from a psql session. These shorthan
 ## Usage 
 git clone https://github.com/tanveermunavar/psql-simplified.git
 
-cd psql-simplified
+cd psql-simplified/
 
 `postgres=> :vacuum_queries`
 
