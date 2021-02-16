@@ -1,4 +1,4 @@
-# psqlSimplified
+# PostgreSQL Database Management with psql Simplified
 
 Description : script to run from a psql session
 
