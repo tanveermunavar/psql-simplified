@@ -1,12 +1,18 @@
 # PostgreSQL Database Management with psql Simplified
 
-Description : script to run from a psql session
+## Description 
+script to run common administrative commands from a psql session. These shorthand commands saves lot of time and improves the efficiency of troubleshooting issues in the postgresql database instance. 
 
-script deployment location `touch ~/.psqlrc`
+## Usage 
+git clone https://github.com/tanveermunavar/psql-simplified.git
 
-usage : `postgres=> :vacuum_queries`
+cd psql-simplified
+
+`postgres=> :vacuum_queries`
 
 hint : ": + double tab will list all the custom scripts alias"
+
+## Output 
 
 ```
 postgres=> :con_statn
