@@ -70,6 +70,7 @@
 
 \set vacuum_progress 'select now()::timestamp(0) as date, a.pid, a.datname, relid::regclass, (now() - query_start) AS runtime, phase, floor(heap_blks_scanned::numeric/heap_blks_total::numeric * 100) as heap_scan_percent, floor(heap_blks_vacuumed::numeric/heap_blks_total::numeric * 100) as heap_vacuum_percent, heap_blks_vacuumed, heap_blks_scanned, index_vacuum_count, max_dead_tuples,num_dead_tuples from pg_stat_progress_vacuum a join pg_stat_activity b on a.pid=b.pid  ;'
 
+
 --
 -- connetion metrics
 --
@@ -114,6 +115,7 @@
 
 \set ip 'SELECT now()::timestamp(0), inet_server_addr(), inet_client_addr(), pg_backend_pid(), txid_current(); '
 
+
 --
 -- replication metric
 --
@@ -136,40 +138,57 @@
 
 -- subscription table status
 \set sub_status 'select srsubid , srrelid::regclass, srsubstate from pg_subscription_rel where srsubstate <> \'r\' ;'
+
+
 --
 -- postgresql_fdw metrics
 --
 
 \set fdwsql 'SELECT \'CREATE FOREIGN TABLE \' || quote_ident(\'${prefix}_\' || c.relname) || \'(\' || array_to_string(array_agg(quote_ident(a.attname) || \' \' || t.typname), \', \') || \') \' || \' SERVER ${prefix}_db OPTIONS\' || \' (schema_name \'\'\' || quote_ident(n.nspname) || \'\'\', table_name \'\'\' || quote_ident(c.relname) || \'\'\');\' FROM pg_class c, pg_attribute a, pg_type t, pg_namespace n WHERE a.attnum > 0 AND a.attrelid = c.oid AND a.atttypid = t.oid AND n.oid = c.relnamespace AND c.relkind in (\'r\', \'v\') AND n.nspname <> \'pg_catalog\' AND n.nspname <> \'information_schema\' AND n.nspname !~ \'^pg_toast\' AND pg_catalog.pg_table_is_visible(c.oid) GROUP BY c.relname, n.nspname ORDER BY c.relname;'
 
+
 --
 -- table metrics
 --
 
 \set seq_scan 'SELECT now()::timestamp(0), relname AS name,seq_scan as count FROM pg_stat_user_tables ORDER BY seq_scan DESC;'
+
 \set index_usage 'SELECT now()::timestamp(0), schemaname, relname,CASE idx_scan  WHEN 0 THEN \'Insufficient data\' ELSE (100 * idx_scan / (seq_scan + idx_scan))::text END percent_of_times_index_used, n_live_tup rows_in_table FROM pg_stat_user_tables ORDER BY n_live_tup DESC LIMIT 20;'
+
 \set cache_hit 'SELECT now()::timestamp(0), \'index hit rate\' AS name, (sum(idx_blks_hit)) / nullif(sum(idx_blks_hit + idx_blks_read),0) AS ratio FROM pg_statio_user_indexes UNION ALL SELECT now()::timestamp(0), \'table hit rate\' AS name, sum(heap_blks_hit) / nullif(sum(heap_blks_hit) + sum(heap_blks_read),0) AS ratio FROM pg_statio_user_tables;'
+
 \set record_rank_liv 'SELECT now()::timestamp(0), relname AS name, n_live_tup AS estimated_count FROM pg_stat_user_tables ORDER BY 3 DESC LIMIT 20;'
+
 \set record_rank_ins 'SELECT now()::timestamp(0), relname AS name, n_tup_ins AS insert_count FROM pg_stat_user_tables ORDER BY 3 DESC LIMIT 20;'
+
 \set record_rank_upd 'SELECT now()::timestamp(0), relname AS name, n_tup_upd AS update_count FROM pg_stat_user_tables ORDER BY 3 DESC LIMIT 20;'
+
 \set record_rank_del 'SELECT now()::timestamp(0), relname AS name, n_tup_del AS delete_count FROM pg_stat_user_tables ORDER BY 3 DESC LIMIT 20;'
+
 \set record_rank_total 'SELECT now()::timestamp(0), relname AS name ,  n_tup_ins + n_tup_upd + n_tup_del AS ins_upd_del_total FROM pg_stat_user_tables ORDER BY 3 DESC LIMIT 20;'
 
 -- \set bloat `cat /home/mohamedt/scripts/bloat.sql`
+
 
 --
 -- size metrics
 --
 
-\set size_tables 'SELECT relnamespace::regnamespace, relname,pg_size_pretty(pg_relation_size(pg_class.oid, \'main\')) as main, pg_size_pretty(pg_relation_size(pg_class.oid, \'fsm\')) as fsm, pg_size_pretty(pg_relation_size(pg_class.oid, \'vm\')) as vm, pg_size_pretty(pg_relation_size(pg_class.oid, \'init\')) as init, pg_size_pretty(pg_table_size(pg_class.oid)) as table, pg_size_pretty(pg_indexes_size(pg_class.oid)) as indexes, pg_size_pretty(pg_total_relation_size(pg_class.oid)) as total FROM pg_class WHERE relkind=\'r\' ORDER BY pg_total_relation_size(pg_class.oid) DESC LIMIT 10;'
-
-\set size_schema 'SELECT schemaname, pg_size_pretty(SUM(pg_total_relation_size(quote_ident(schemaname) || \'.\' || quote_ident(tablename)))::BIGINT) FROM pg_tables group by schemaname ORDER BY SUM(pg_total_relation_size(quote_ident(schemaname) || \'.\' || quote_ident(tablename))) DESC ;'
+\set size_cluster 'SELECT pg_size_pretty(sum(pg_database_size(d.datname))) AS cluster_size FROM pg_database d;'
 
 \set size_db 'SELECT d.datname AS db_name, pg_size_pretty(pg_database_size(d.datname)) AS db_size FROM pg_database d ORDER BY pg_database_size(d.datname) DESC;'
 
-\set cluster_size 'SELECT pg_size_pretty(sum(pg_database_size(d.datname))) AS cluster_size FROM pg_database d;'
+\set size_schema 'SELECT schemaname, pg_size_pretty(SUM(pg_total_relation_size(quote_ident(schemaname) || \'.\' || quote_ident(tablename)))::BIGINT) FROM pg_tables group by schemaname ORDER BY SUM(pg_total_relation_size(quote_ident(schemaname) || \'.\' || quote_ident(tablename))) DESC ;'
 
-\set dbsize 'SELECT datname, pg_size_pretty(pg_database_size(datname)) db_size FROM pg_database ORDER BY pg_database_size(datname) DESC;'
+\set size_tables 'SELECT relnamespace::regnamespace, relname,pg_size_pretty(pg_relation_size(pg_class.oid, \'main\')) as main, pg_size_pretty(pg_relation_size(pg_class.oid, \'fsm\')) as fsm, pg_size_pretty(pg_relation_size(pg_class.oid, \'vm\')) as vm, pg_size_pretty(pg_relation_size(pg_class.oid, \'init\')) as init, pg_size_pretty(pg_table_size(pg_class.oid)) as table, pg_size_pretty(pg_indexes_size(pg_class.oid)) as indexes, pg_size_pretty(pg_total_relation_size(pg_class.oid)) as total FROM pg_class WHERE relkind=\'r\' ORDER BY pg_total_relation_size(pg_class.oid) DESC LIMIT 10;'
+
+\set size_temp 'SELECT datname , temp_files , pg_size_pretty(temp_bytes) AS temp_size_pretty FROM pg_stat_database where temp_files <> 0 order by temp_bytes desc;'
+
+\set size_wal 'select pg_size_pretty(sum(size)) from pg_ls_waldir();'
+
+\set size_log 'select pg_size_pretty(sum(size)) from pg_ls_logdir();'
+
+\set size_archive_status 'select pg_size_pretty(sum(size)) from pg_ls_archive_statusdir() ;'
 
 
 --
